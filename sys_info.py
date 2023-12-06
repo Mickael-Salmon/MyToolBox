@@ -19,6 +19,15 @@ console = Console()
 init(autoreset=True)
 
 def check_if_wireless(interface):
+    """
+    Check if the given network interface is a wireless interface.
+
+    Args:
+        interface (str): The name of the network interface.
+
+    Returns:
+        bool: True if the interface is wireless, False otherwise.
+    """
     wireless_exists = os.path.exists(f'/sys/class/net/{interface}/wireless')
     if wireless_exists:
         console.print(f"L'interface [bold green]{escape(interface)}[/bold green] est sans fil 📶")
@@ -28,6 +37,12 @@ def check_if_wireless(interface):
     return wireless_exists
 
 def get_wan_ip():
+    """
+    Retrieves the WAN IP address.
+
+    Returns:
+        str: The WAN IP address if available, otherwise "Indisponible".
+    """
     try:
         response = requests.get('https://httpbin.org/ip')
         wan_ip = response.json()['origin']
@@ -38,6 +53,13 @@ def get_wan_ip():
         return "Indisponible"
 
 def get_os_info():
+    """
+    Retrieves the operating system information from the '/etc/os-release' file.
+
+    Returns:
+        str: The formatted operating system information in the format 'name (version)'.
+            If the '/etc/os-release' file is not found, returns 'Informations sur la distribution indisponibles'.
+    """
     try:
         with open('/etc/os-release') as f:
             lines = f.readlines()
@@ -52,6 +74,12 @@ def get_os_info():
         return "Informations sur la distribution indisponibles"
 
 def check_docker():
+    """
+    Check if Docker is installed and running.
+
+    Returns:
+        str: A message indicating the status of Docker and the running containers.
+    """
     try:
         subprocess.run(['docker', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         output = subprocess.check_output(['docker', 'ps'], text=True).strip()
@@ -72,6 +100,12 @@ def check_docker():
         return "Docker n'est pas installé ou non accessible."
 
 def print_system_info():
+    """
+    Prints system information including CPU count, memory usage, and disk usage.
+
+    Raises:
+        Exception: If there is an error retrieving system information.
+    """
     table = Table(title="Informations sur le système", box=box.ROUNDED)
 
     table.add_column("Description", justify="right", style="cyan", no_wrap=True)
@@ -91,6 +125,18 @@ def print_system_info():
     console.print(table)
 
 def list_users():
+    """
+    Retrieves and displays a list of system users.
+
+    This function reads the '/etc/passwd' file and extracts the usernames.
+    It then prints the usernames in a formatted table.
+
+    Args:
+        None
+
+    Returns:
+        None
+    """
     with open('/etc/passwd', 'r') as f:
         lines = f.readlines()
 
@@ -103,10 +149,25 @@ def list_users():
 
     console.print(table)
 
+import subprocess
+from rich.console import Console
+from rich.table import Table
+from rich import box
+
 def list_logged_in_users():
+    """
+    Retrieves and displays the list of currently logged in users.
+
+    This function uses the 'who' command to get the list of logged in users.
+    It then displays the list in a formatted table using the 'rich' library.
+
+    Raises:
+        subprocess.CalledProcessError: If there is an error while executing the 'who' command.
+
+    """
     try:
         output = subprocess.check_output('who', shell=True, text=True).strip().split('\n')
-        logged_in_users = list(set([line.split()[0] for line in output]))  # Enlever les doublons
+        logged_in_users = list(set([line.split()[0] for line in output]))  # Remove duplicates
 
         if logged_in_users:
             table = Table(title="Utilisateurs actuellement connectés", box=box.ROUNDED)
@@ -122,6 +183,12 @@ def list_logged_in_users():
         console.print("Impossible de récupérer la liste des utilisateurs connectés.", style="red")
 
 def get_bandwidth():
+    """
+    Get the current network bandwidth in Mbps.
+
+    Returns:
+        None
+    """
     net1_out = psutil.net_io_counters().bytes_sent
     net1_in = psutil.net_io_counters().bytes_recv
     time.sleep(1)
@@ -145,6 +212,14 @@ def get_bandwidth():
     console.print(table)
 
 def check_snap_and_flatpak():
+    """
+    Check the availability and versions of Snap and Flatpak packages installed on the system.
+
+    Returns:
+        dict: A dictionary containing information about Snap and Flatpak packages.
+            The 'snap' key contains either a Table object with Snap package information or the string 'Non installé'
+            The 'flatpak' key contains either a Table object with Flatpak application information or the string 'Non installé'
+    """
     info = {}
 
     # Pour Snap
@@ -196,6 +271,16 @@ def check_snap_and_flatpak():
             console.print(f"{key.capitalize()} : {table}", style="yellow")
 
 def run_and_print(cmd, desc):
+    """
+    Run a command and print the output.
+
+    Args:
+        cmd (str): The command to be executed.
+        desc (str): The description of the command.
+
+    Returns:
+        None
+    """
     console.print(f"{desc}:", style="bold yellow")
     try:
         output = subprocess.check_output(cmd, shell=True, text=True).strip()
@@ -205,6 +290,21 @@ def run_and_print(cmd, desc):
     console.print("-" * 40)
 
 def get_network_info():
+    """
+    Retrieves and displays network and system information of the machine.
+
+    This function prints the following information:
+    - Hostname of the machine
+    - Kernel information
+    - Distribution information
+    - Default route
+    - Routing table
+    - DNS configuration
+    - Active connections
+    - LAN IPv4 addresses
+    - LAN IPv6 addresses
+    - WAN IP address
+    """
     console.print("Hello Friend! Voici les informations réseau et système de cette machine:\n", style="bold green")
 
     run_and_print('hostname', 'Nom de la machine')
@@ -232,6 +332,16 @@ def get_network_info():
     console.print("-" * 40)
 
 def check_security():
+    """
+    Check the security status of the system.
+
+    This function performs the following checks:
+    1. Checks the status of UFW (Uncomplicated Firewall).
+    2. Checks the status of firewalld.
+    3. Checks the status of the SSH service.
+
+    The results of each check are printed to the console.
+    """
     console.print("\n[bold blue]Vérification de la Sécurité[/bold blue]")
 
     # Vérification de l'état de UFW (Uncomplicated Firewall)
@@ -266,6 +376,9 @@ def check_security():
 
 
 def main_menu():
+    """
+    Displays the main menu and handles user input to execute different options.
+    """
     table = Table(title="🚀 Menu Principal 🚀", box=box.ROUNDED, show_header=True, header_style="bold blue")
     table.add_column("Option", style="dim", width=12)
     table.add_column("Description", justify="left")
